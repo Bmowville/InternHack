@@ -23,7 +23,11 @@ import { canonicalUrl } from "../../../lib/seo.utils";
 import { useAuthStore } from "../../../lib/auth.store";
 import { reportMilestone } from "../../../lib/milestone.utils";
 import { DIFF_COLOR } from "../../../lib/difficulty-colors";
-import { getReadingTime, countCodeBlocks, hasExercises } from "../../../utils/lessonMetadata";
+import {
+  countCodeBlocks,
+  getReadingTime,
+  hasExercises,
+} from "../../../utils/lessonMetadata";
 
 const FREE_LIMIT = 5;
 
@@ -59,10 +63,6 @@ function ExerciseSection({
     const p = getLocalProgress();
     return p[lessonId]?.exercisesSolved ?? {};
   });
-  useEffect(() => {
-  setActiveIdx(0);
-  setSolved(getLocalProgress()[lessonId]?.exercisesSolved ?? {});
-}, [lessonId]);
 
   const exercise = exercises[activeIdx];
 
@@ -244,15 +244,9 @@ export default function FlaskLessonDetailPage() {
   const navigate = useNavigate();
   const basePath = "/learn/flask";
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const [progress, setProgress] = useState<FlaskProgress>(() => getLocalProgress());
+  const completed = !!progress[lessonId ?? ""]?.completed;
 
-  const [completed, setCompleted] = useState(() => {
-    const p = getLocalProgress();
-    return !!p[lessonId ?? ""]?.completed;
-  });
-useEffect(() => {
-  const p = getLocalProgress();
-  setCompleted(!!p[lessonId ?? ""]?.completed);
-}, [lessonId]);
   const section = sections.find((s) => s.id === sectionSlug);
   const sectionIndex = sections.findIndex((s) => s.id === sectionSlug);
   const sectionLessons = useMemo(
@@ -268,10 +262,10 @@ useEffect(() => {
   const handleToggleComplete = useCallback(() => {
     if (!lessonId) return;
     const newVal = toggleProgress(lessonId);
-    setCompleted(newVal);
+    const updatedProgress = getLocalProgress();
+    setProgress(updatedProgress);
     if (newVal && isAuthenticated && sectionSlug) {
-      const progress = getLocalProgress();
-      const allDone = lessons.every((l) => progress[l.id]?.completed);
+      const allDone = lessons.every((l) => updatedProgress[l.id]?.completed);
       if (allDone) reportMilestone("COURSE_COMPLETE", "flask");
     }
   }, [lessonId, isAuthenticated, sectionSlug]);
@@ -538,7 +532,7 @@ useEffect(() => {
                   Practice
                 </span>
               </div>
-              <ExerciseSection exercises={exercises} lessonId={lessonId!} />
+              <ExerciseSection key={lessonId} exercises={exercises} lessonId={lessonId!} />
             </>
           )}
 
